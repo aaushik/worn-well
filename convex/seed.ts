@@ -6,11 +6,13 @@ export const clearDemoCorpus = mutation({
     const user = await ctx.db.query('users').withIndex('by_external_id', (q) => q.eq('externalId', 'demo-user')).unique()
     if (!user) return { removed: 0 }
     const outfits = await ctx.db.query('outfits').withIndex('by_user', (q) => q.eq('userId', user._id)).collect()
+    const garments = await ctx.db.query('garments').withIndex('by_user', (q) => q.eq('userId', user._id)).collect()
+    for (const garment of garments) await ctx.db.delete(garment._id)
     for (const outfit of outfits) {
       if (outfit.imageStorageId) await ctx.storage.delete(outfit.imageStorageId)
       await ctx.db.delete(outfit._id)
     }
-    return { removed: outfits.length }
+    return { outfitsRemoved: outfits.length, garmentsRemoved: garments.length }
   },
 })
 
