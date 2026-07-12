@@ -23,7 +23,9 @@ Date: 2026-07-12
 
 ## Deployment state
 
-- Convex backend changes ARE deployed to `https://scintillating-husky-847.convex.cloud`.
+- Latest safe checkpoint commit: `2d3c360` (`fix: make garment crop backfill unambiguous`).
+- Convex backend changes, including the safety fix, ARE deployed to `https://scintillating-husky-847.convex.cloud`.
+- Independent review blockers were resolved: stale provisional records are deleted during confirmed-record backfill, and crops are attached only for categories represented exactly once in both confirmed data and Gemini output.
 - GitHub Pages frontend changes are NOT published yet.
 - Production backfill is PARTIAL: the first outfit re-analysis succeeded; the remaining two repeatedly hit Gemini free-tier HTTP 429 quota limits.
 - Do not claim all eight confirmed garments have crop boxes until production data is queried again.
