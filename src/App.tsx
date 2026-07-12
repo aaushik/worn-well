@@ -1,13 +1,20 @@
 import { useMemo, useState } from 'react'
 import { FREE_OUTFIT_LIMIT, STYLIST_UNLOCK_COUNT } from './domain/wardrobe'
 import { CaptureFlow, CaptureValue } from './features/outfits/CaptureFlow'
-import { OutfitHistory, OutfitSummary } from './features/outfits/OutfitHistory'
+import { GarmentInput } from './features/garments/GarmentReview'
+import { OutfitHistory, OutfitSummary, WardrobeGarment } from './features/outfits/OutfitHistory'
 import './styles.css'
 
 type AppProps = {
   initialOutfitCount?: number
   outfits?: OutfitSummary[]
+  garments?: WardrobeGarment[]
   onSaveOutfit?: (value: CaptureValue) => Promise<void>
+  onAnalyzeGarments?: (outfitId: string) => Promise<unknown>
+  onUpdateGarment?: (input: GarmentInput & { garmentId: string }) => Promise<unknown>
+  onRemoveGarment?: (garmentId: string) => Promise<unknown>
+  onAddGarment?: (input: GarmentInput & { outfitId: string }) => Promise<unknown>
+  onConfirmGarments?: (outfitId: string) => Promise<unknown>
 }
 
 function readinessCopy(count: number) {
@@ -17,7 +24,17 @@ function readinessCopy(count: number) {
   return `Add ${STYLIST_UNLOCK_COUNT - count} outfits to unlock your first recommendations.`
 }
 
-export function App({ initialOutfitCount = 0, outfits = [], onSaveOutfit }: AppProps) {
+export function App({
+  initialOutfitCount = 0,
+  outfits = [],
+  garments = [],
+  onSaveOutfit,
+  onAnalyzeGarments = async () => undefined,
+  onUpdateGarment = async () => undefined,
+  onRemoveGarment = async () => undefined,
+  onAddGarment = async () => undefined,
+  onConfirmGarments = async () => undefined,
+}: AppProps) {
   const [demoCount, setDemoCount] = useState(initialOutfitCount)
   const [formOpen, setFormOpen] = useState(false)
   const outfitCount = onSaveOutfit ? outfits.length : demoCount
@@ -66,7 +83,7 @@ export function App({ initialOutfitCount = 0, outfits = [], onSaveOutfit }: AppP
         </section>
 
         {formOpen && <div className="capture-overlay"><CaptureFlow onClose={() => setFormOpen(false)} onSave={saveOutfit} /></div>}
-        {onSaveOutfit && <OutfitHistory outfits={outfits} />}
+        {onSaveOutfit && <OutfitHistory outfits={outfits} garments={garments} onAnalyze={onAnalyzeGarments} onUpdate={onUpdateGarment} onRemove={onRemoveGarment} onAdd={onAddGarment} onConfirm={onConfirmGarments} />}
 
         <aside className="principle" aria-label="Product principle"><span className="principle-number">01</span><p><strong>No invented clothes.</strong>Every recommendation must point back to a garment you confirmed.</p></aside>
       </section>

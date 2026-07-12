@@ -62,7 +62,7 @@ export const create = mutation({
       throw new ConvexError({ code: 'INVALID_RATING' })
     }
 
-    return ctx.db.insert('outfits', { ...input, userId: user._id, status: 'confirmed' })
+    return ctx.db.insert('outfits', { ...input, userId: user._id, analysisStatus: 'pending', status: 'confirmed' })
   },
 })
 
@@ -87,6 +87,6 @@ export const createCaptured = mutation({
     for (const rating of [input.comfort, input.confidenceAfter]) {
       if (rating !== undefined && (rating < 1 || rating > 10)) throw new ConvexError({ code: 'INVALID_RATING' })
     }
-    return ctx.db.insert('outfits', { ...input, userId: user._id, status: 'confirmed' })
+    return ctx.db.insert('outfits', { ...input, userId: user._id, analysisStatus: 'pending', status: 'confirmed' })
   },
 })
