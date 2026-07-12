@@ -111,12 +111,20 @@ export function CaptureFlow({ onClose, onSave }: Props) {
         <p className="section-label">OUTFIT 01</p>
         <h2 id="capture-title">Show me what you’re wearing.</h2>
         <p className="capture-copy">Take a photo now or choose one from your library.</p>
-        <label className="camera-action">
-          <span className="camera-icon" aria-hidden="true">◎</span>
-          <strong>Take or choose an outfit photo</strong>
-          <small>Camera or photo library</small>
-          <input accept="image/*" capture="environment" type="file" onChange={(event) => chooseImage(event.target.files?.[0] ?? null)} />
-        </label>
+        <div className="capture-sources">
+          <label className="camera-action">
+            <span className="camera-icon" aria-hidden="true">◎</span>
+            <strong>Take a photo</strong>
+            <small>Open your camera</small>
+            <input accept="image/*" capture="environment" type="file" onChange={(event) => chooseImage(event.target.files?.[0] ?? null)} />
+          </label>
+          <label className="gallery-action">
+            <span className="gallery-icon" aria-hidden="true">▧</span>
+            <strong>Choose from gallery</strong>
+            <small>Browse your photo library</small>
+            <input accept="image/*" type="file" onChange={(event) => chooseImage(event.target.files?.[0] ?? null)} />
+          </label>
+        </div>
       </section>
     )
   }
