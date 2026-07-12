@@ -48,4 +48,10 @@ export default defineSchema({
     outfitId: v.id('outfits'),
     garmentId: v.id('garments'),
   }).index('by_outfit', ['outfitId']),
+
+  stylistUsage: defineTable({
+    userId: v.id('users'),
+    day: v.string(),
+    count: v.number(),
+  }).index('by_user_day', ['userId', 'day']),
 })

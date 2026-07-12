@@ -5,6 +5,7 @@ import { Id } from '../convex/_generated/dataModel'
 import { App } from './App'
 import { CaptureValue } from './features/outfits/CaptureFlow'
 import { GarmentInput } from './features/garments/GarmentReview'
+import { StylistRequest } from './features/stylist/StylistPanel'
 
 export function ConnectedApp() {
   const outfits = useQuery(api.outfits.list) ?? []
@@ -17,6 +18,7 @@ export function ConnectedApp() {
   const removeGarment = useMutation(api.garments.remove)
   const addGarment = useMutation(api.garments.addManual)
   const confirmGarments = useMutation(api.garments.confirmForOutfit)
+  const recommendOutfit = useAction(api.stylist.recommend)
 
   useEffect(() => { void ensureDemoUser() }, [ensureDemoUser])
 
@@ -53,6 +55,10 @@ export function ConnectedApp() {
     return confirmGarments({ outfitId: outfitId as Id<'outfits'> })
   }
 
+  function recommend(request: StylistRequest) {
+    return recommendOutfit(request)
+  }
+
   return <App
     outfits={outfits.map((outfit) => ({ ...outfit, _id: String(outfit._id) }))}
     garments={garments.map((garment) => ({ ...garment, _id: String(garment._id), sourceOutfitId: String(garment.sourceOutfitId) }))}
@@ -62,5 +68,6 @@ export function ConnectedApp() {
     onRemoveGarment={remove}
     onAddGarment={add}
     onConfirmGarments={confirm}
+    onRecommend={recommend}
   />
 }

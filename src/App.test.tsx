@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from './App'
@@ -20,6 +21,15 @@ describe('wardrobe readiness shell', () => {
 
     expect(screen.getByText(/your personal stylist is ready/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /ask for an outfit/i })).toBeEnabled()
+  })
+
+  it('opens the grounded stylist request after three outfits', async () => {
+    const user = userEvent.setup()
+    render(<App initialOutfitCount={3} onRecommend={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /ask for an outfit/i }))
+
+    expect(screen.getByRole('heading', { name: /what are you dressing for/i })).toBeInTheDocument()
   })
 
   it('shows the free wardrobe limit without removing recommendation access', () => {

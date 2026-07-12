@@ -3,6 +3,7 @@ import { FREE_OUTFIT_LIMIT, STYLIST_UNLOCK_COUNT } from './domain/wardrobe'
 import { CaptureFlow, CaptureValue } from './features/outfits/CaptureFlow'
 import { GarmentInput } from './features/garments/GarmentReview'
 import { OutfitHistory, OutfitSummary, WardrobeGarment } from './features/outfits/OutfitHistory'
+import { StylistPanel, StylistRequest, StylistResult } from './features/stylist/StylistPanel'
 import './styles.css'
 
 type AppProps = {
@@ -15,6 +16,7 @@ type AppProps = {
   onRemoveGarment?: (garmentId: string) => Promise<unknown>
   onAddGarment?: (input: GarmentInput & { outfitId: string }) => Promise<unknown>
   onConfirmGarments?: (outfitId: string) => Promise<unknown>
+  onRecommend?: (request: StylistRequest) => Promise<StylistResult>
 }
 
 function readinessCopy(count: number) {
@@ -34,9 +36,11 @@ export function App({
   onRemoveGarment = async () => undefined,
   onAddGarment = async () => undefined,
   onConfirmGarments = async () => undefined,
+  onRecommend,
 }: AppProps) {
   const [demoCount, setDemoCount] = useState(initialOutfitCount)
   const [formOpen, setFormOpen] = useState(false)
+  const [stylistOpen, setStylistOpen] = useState(false)
   const outfitCount = onSaveOutfit ? outfits.length : demoCount
   const isStylistReady = outfitCount >= STYLIST_UNLOCK_COUNT
   const isFreeWardrobeFull = outfitCount >= FREE_OUTFIT_LIMIT
@@ -77,12 +81,13 @@ export function App({
           </ol>
           <div className="actions">
             {!isFreeWardrobeFull && <button className="primary-action" type="button" onClick={beginOutfit}><span>{onSaveOutfit ? 'Log an outfit' : 'Add demo outfit'}</span><span aria-hidden="true">↗</span></button>}
-            <button className="secondary-action" type="button" disabled={!isStylistReady}>Ask for an outfit</button>
+            <button className="secondary-action" type="button" disabled={!isStylistReady} onClick={() => onRecommend && setStylistOpen(true)}>Ask for an outfit</button>
             {isFreeWardrobeFull && <button className="upgrade-action" type="button">Unlock unlimited wardrobe</button>}
           </div>
         </section>
 
         {formOpen && <div className="capture-overlay"><CaptureFlow onClose={() => setFormOpen(false)} onSave={saveOutfit} /></div>}
+        {stylistOpen && onRecommend && <div className="capture-overlay"><StylistPanel onClose={() => setStylistOpen(false)} onRecommend={onRecommend} provisionalGarmentCount={garments.filter((garment) => !garment.confirmed).length} /></div>}
         {onSaveOutfit && <OutfitHistory outfits={outfits} garments={garments} onAnalyze={onAnalyzeGarments} onUpdate={onUpdateGarment} onRemove={onRemoveGarment} onAdd={onAddGarment} onConfirm={onConfirmGarments} />}
 
         <aside className="principle" aria-label="Product principle"><span className="principle-number">01</span><p><strong>No invented clothes.</strong>Every recommendation must point back to a garment you confirmed.</p></aside>
