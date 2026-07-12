@@ -2,6 +2,12 @@
 
 A mobile-first personal styling agent that learns from what people actually wear. Users can photograph an outfit, save it immediately, add a few context taps, or talk through it in a guided voice interview. The stylist unlocks after three confirmed outfits and never recommends garments the user has not logged.
 
+## Live app
+
+https://aaushik.github.io/worn-well/
+
+The public frontend runs on GitHub Pages over HTTPS and connects to the production Convex deployment.
+
 ## Current build
 
 - Mobile camera and photo-library capture
