@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { StylistPanel } from './StylistPanel'
@@ -38,7 +38,11 @@ describe('StylistPanel', () => {
     expect(await screen.findByText('Easy dinner look')).toBeInTheDocument()
     expect(screen.getByText('White shirt')).toBeInTheDocument()
     expect(screen.getByText('Dark jeans')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /white shirt crop/i })).toHaveAttribute('src', 'https://example.com/outfit.jpg')
+    const crop = screen.getByRole('img', { name: /white shirt crop/i })
+    expect(crop).toHaveAttribute('src', 'https://example.com/outfit.jpg')
+    fireEvent.error(crop)
+    expect(screen.queryByRole('img', { name: /white shirt crop/i })).not.toBeInTheDocument()
+    expect(screen.getByText('White shirt')).toBeInTheDocument()
   })
 
   it('removes a previous result while submitting a new request', async () => {

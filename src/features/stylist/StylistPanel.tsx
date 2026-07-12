@@ -35,7 +35,8 @@ type Props = {
 
 function GarmentCrop({ garment }: { garment: GroundedGarment }) {
   const [sourceRatio, setSourceRatio] = useState(1)
-  if (!garment.sourceImageUrl || !garment.boundingBox) return null
+  const [failed, setFailed] = useState(false)
+  if (!garment.sourceImageUrl || !garment.boundingBox || failed) return null
   const box = garment.boundingBox
   const frameStyle = { aspectRatio: String((box.width * sourceRatio) / box.height) } as CSSProperties
   const imageStyle = {
@@ -49,7 +50,7 @@ function GarmentCrop({ garment }: { garment: GroundedGarment }) {
     setSourceRatio(image.naturalWidth / image.naturalHeight)
   }
   return <div className="garment-crop" style={frameStyle}>
-    <img src={garment.sourceImageUrl} alt={`${garment.label} crop`} style={imageStyle} onLoad={loaded} />
+    <img src={garment.sourceImageUrl} alt={`${garment.label} crop`} style={imageStyle} onLoad={loaded} onError={() => setFailed(true)} />
   </div>
 }
 

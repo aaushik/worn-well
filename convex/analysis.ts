@@ -4,6 +4,7 @@ import { ConvexError, v } from 'convex/values'
 import { action, internalMutation, internalQuery } from './_generated/server'
 import { internal } from './_generated/api'
 import { parseGeminiGarments } from './lib/gemini'
+import { matchUnambiguousCropBoxes } from './lib/garmentCrops'
 
 const suggestionValidator = v.object({
   label: v.string(),
@@ -29,7 +30,7 @@ const responseSchema = {
         required: ['label', 'category', 'subtype', 'primaryColor', 'secondaryColors', 'pattern', 'fit', 'silhouette', 'layerPosition', 'confidence', 'boundingBox'],
         properties: {
           label: { type: 'string' },
-          category: { type: 'string' },
+          category: { type: 'string', enum: ['top', 'bottom', 'dress', 'outerwear', 'footwear', 'accessory', 'unknown'] },
           subtype: { type: 'string' },
           primaryColor: { type: 'string' },
           secondaryColors: { type: 'array', items: { type: 'string' } },
@@ -42,7 +43,10 @@ const responseSchema = {
             type: 'object',
             required: ['x', 'y', 'width', 'height'],
             properties: {
-              x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' },
+              x: { type: 'number', minimum: 0, maximum: 1 },
+              y: { type: 'number', minimum: 0, maximum: 1 },
+              width: { type: 'number', minimum: 0.001, maximum: 1 },
+              height: { type: 'number', minimum: 0.001, maximum: 1 },
             },
           },
         },
@@ -83,13 +87,9 @@ export const saveSuggestions = internalMutation({
     const existing = await ctx.db.query('garments').withIndex('by_outfit', (q) => q.eq('sourceOutfitId', outfitId)).collect()
     const confirmed = existing.filter((garment) => garment.confirmed)
     if (confirmed.length > 0) {
-      const available = [...confirmed]
-      for (const suggestion of suggestions) {
-        const matchIndex = available.findIndex((garment) => garment.category === suggestion.category)
-        if (matchIndex < 0) continue
-        const [match] = available.splice(matchIndex, 1)
-        await ctx.db.patch(match._id, { boundingBox: suggestion.boundingBox })
-      }
+      await Promise.all(existing.filter((garment) => !garment.confirmed).map((garment) => ctx.db.delete(garment._id)))
+      const matches = matchUnambiguousCropBoxes(confirmed, suggestions)
+      await Promise.all(matches.map(({ garment, boundingBox }) => ctx.db.patch(garment._id, { boundingBox })))
       await ctx.db.patch(outfitId, { analysisStatus: 'ready', analysisError: undefined })
       return
     }
