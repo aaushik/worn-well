@@ -4,7 +4,7 @@ import { ConvexError, v } from 'convex/values'
 import { action, internalMutation, internalQuery } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { isCompleteLook, parseStylistRecommendation } from './lib/stylist'
+import { buildFallbackSelection, isCompleteLook, parseStylistRecommendation } from './lib/stylist'
 import { stylistRecommendationSchema, type StylistRecommendation } from '../src/domain/stylistRecommendation'
 
 const DEMO_EXTERNAL_ID = 'demo-user'
@@ -29,6 +29,8 @@ type GroundedGarment = {
   pattern: string
   fit: string
   silhouette: string
+  sourceImageUrl?: string | null
+  boundingBox?: { x: number; y: number; width: number; height: number }
 }
 
 type GroundedWardrobe = { userId: Id<'users'>; outfitCount: number; confirmed: GroundedGarment[]; provisionalCount: number }
@@ -44,6 +46,10 @@ export const getGroundedWardrobe = internalQuery({
       ctx.db.query('outfits').withIndex('by_user', (q) => q.eq('userId', user._id)).collect(),
       ctx.db.query('garments').withIndex('by_user', (q) => q.eq('userId', user._id)).collect(),
     ])
+    const imageUrls = new Map(await Promise.all(outfits.map(async (outfit) => [
+      String(outfit._id),
+      outfit.imageStorageId ? await ctx.storage.getUrl(outfit.imageStorageId) : outfit.sampleImageUrl ?? null,
+    ] as const)))
     return {
       userId: user._id,
       outfitCount: outfits.filter((outfit) => outfit.status === 'confirmed').length,
@@ -57,6 +63,8 @@ export const getGroundedWardrobe = internalQuery({
         pattern: clip(garment.pattern ?? 'unknown'),
         fit: clip(garment.fit ?? 'unknown'),
         silhouette: clip(garment.silhouette ?? 'unknown'),
+        sourceImageUrl: imageUrls.get(String(garment.sourceOutfitId)) ?? null,
+        boundingBox: garment.boundingBox,
       })),
       provisionalCount: garments.filter((garment) => !garment.confirmed).length,
     }
@@ -122,12 +130,13 @@ export const recommend = action({
     const apiKey = process.env.GEMINI_API_KEY?.trim()
     if (!apiKey) throw new ConvexError({ code: 'VISION_NOT_CONFIGURED', message: 'Gemini is not configured.' })
     const model = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash'
+    const promptWardrobe = wardrobe.confirmed.map(({ sourceImageUrl: _sourceImageUrl, boundingBox: _boundingBox, ...garment }) => garment)
     const prompt = [
       'You are Worn Well, a conservative personal stylist.',
       'Select 1 to 3 complete looks using ONLY garment IDs in the confirmed wardrobe JSON.',
       'Return IDs only. Do not return titles, explanations, notes, or any other prose.',
       `Request: ${JSON.stringify({ occasion, weather: input.weather?.trim() || undefined, preference: input.preference?.trim() || undefined })}`,
-      `Confirmed wardrobe: ${JSON.stringify(wardrobe.confirmed)}`,
+      `Confirmed wardrobe: ${JSON.stringify(promptWardrobe)}`,
     ].join('\n')
     if (prompt.length > MAX_PROMPT_LENGTH) {
       throw new ConvexError({ code: 'WARDROBE_TOO_LARGE', message: 'The confirmed wardrobe is too large to style safely.' })
@@ -140,12 +149,18 @@ export const recommend = action({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: 'application/json', responseSchema },
       }),
-    })
-    if (!response.ok) throw new ConvexError({ code: 'STYLIST_FAILED', message: `Gemini recommendation failed (${response.status}).` })
-
+    }).catch(() => null)
     try {
-      const selection = parseStylistRecommendation(await response.json(), new Set(wardrobe.confirmed.map((garment) => garment.id)))
       const byId = new Map(wardrobe.confirmed.map((garment) => [garment.id, garment]))
+      let selection = buildFallbackSelection(wardrobe.confirmed)
+      if (response?.ok) {
+        try {
+          const candidate = parseStylistRecommendation(await response.json(), new Set(byId.keys()))
+          if (candidate.looks.every((look) => isCompleteLook(look.garmentIds.map((id) => byId.get(id)!).filter(Boolean)))) selection = candidate
+        } catch {
+          // Keep the deterministic confirmed-wardrobe fallback.
+        }
+      }
       const looks = selection.looks.map((look, index) => {
         const selected = look.garmentIds.map((id) => byId.get(id)!).filter(Boolean)
         if (!isCompleteLook(selected)) throw new Error('Gemini returned an incomplete outfit combination')

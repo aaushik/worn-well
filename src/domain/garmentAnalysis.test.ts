@@ -12,6 +12,7 @@ const validGarment = {
   silhouette: 'relaxed',
   layerPosition: 'base',
   confidence: 0.91,
+  boundingBox: { x: 0.1, y: 0.15, width: 0.5, height: 0.4 },
 }
 
 describe('garmentAnalysisSchema', () => {
@@ -22,6 +23,12 @@ describe('garmentAnalysisSchema', () => {
   it('rejects unsupported categories and out-of-range confidence', () => {
     expect(() => garmentAnalysisSchema.parse({
       garments: [{ ...validGarment, category: 'designer-piece', confidence: 1.4 }],
+    })).toThrow()
+  })
+
+  it('rejects crop boxes outside the normalized image bounds', () => {
+    expect(() => garmentAnalysisSchema.parse({
+      garments: [{ ...validGarment, boundingBox: { x: 0.8, y: 0.1, width: 0.4, height: 0.4 } }],
     })).toThrow()
   })
 

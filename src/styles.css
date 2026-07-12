@@ -162,9 +162,11 @@ h1 {
 .look-card h3 { margin: 7px 0 16px; font: 600 28px/1.05 'Playfair Display', serif; }
 .look-card > p:not(.section-label) { color: #59564d; line-height: 1.55; }
 .look-garments, .styling-notes { margin: 0; padding: 0; list-style: none; }
-.look-garments { display: grid; gap: 8px; margin-bottom: 18px; }
-.look-garments li { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-.look-garments span { color: #777268; font-size: 13px; text-align: right; }
+.look-garments { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.look-garments li { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 8px; border: 1px solid var(--line); background: #f7f3ea; }
+.look-garments span { color: #777268; font-size: 13px; }
+.garment-crop { position: relative; width: 100%; min-height: 120px; margin-bottom: 6px; overflow: hidden; background: #e7e1d5; }
+.garment-crop img { position: absolute; max-width: none; object-fit: fill; }
 .styling-notes { display: grid; gap: 7px; margin-top: 14px; color: #34322d; font-size: 14px; }
 .styling-notes li::before { content: '↳ '; color: var(--accent); }
 .capture-sheet h2 { margin: 10px 0 12px; font: 600 clamp(34px, 6vw, 52px)/.98 'Playfair Display', serif; letter-spacing: -.04em; }

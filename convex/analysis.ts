@@ -16,7 +16,8 @@ const suggestionValidator = v.object({
   silhouette: v.string(),
   layerPosition: v.string(),
   confidence: v.number(),
-})
+  boundingBox: v.object({ x: v.number(), y: v.number(), width: v.number(), height: v.number() }),
+  })
 
 const responseSchema = {
   type: 'object',
@@ -25,7 +26,7 @@ const responseSchema = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['label', 'category', 'subtype', 'primaryColor', 'secondaryColors', 'pattern', 'fit', 'silhouette', 'layerPosition', 'confidence'],
+        required: ['label', 'category', 'subtype', 'primaryColor', 'secondaryColors', 'pattern', 'fit', 'silhouette', 'layerPosition', 'confidence', 'boundingBox'],
         properties: {
           label: { type: 'string' },
           category: { type: 'string' },
@@ -37,6 +38,13 @@ const responseSchema = {
           silhouette: { type: 'string' },
           layerPosition: { type: 'string' },
           confidence: { type: 'number' },
+          boundingBox: {
+            type: 'object',
+            required: ['x', 'y', 'width', 'height'],
+            properties: {
+              x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' },
+            },
+          },
         },
       },
     },
@@ -73,7 +81,20 @@ export const saveSuggestions = internalMutation({
     if (!outfit) throw new ConvexError({ code: 'OUTFIT_NOT_FOUND' })
 
     const existing = await ctx.db.query('garments').withIndex('by_outfit', (q) => q.eq('sourceOutfitId', outfitId)).collect()
-    await Promise.all(existing.filter((garment) => !garment.confirmed).map((garment) => ctx.db.delete(garment._id)))
+    const confirmed = existing.filter((garment) => garment.confirmed)
+    if (confirmed.length > 0) {
+      const available = [...confirmed]
+      for (const suggestion of suggestions) {
+        const matchIndex = available.findIndex((garment) => garment.category === suggestion.category)
+        if (matchIndex < 0) continue
+        const [match] = available.splice(matchIndex, 1)
+        await ctx.db.patch(match._id, { boundingBox: suggestion.boundingBox })
+      }
+      await ctx.db.patch(outfitId, { analysisStatus: 'ready', analysisError: undefined })
+      return
+    }
+
+    await Promise.all(existing.map((garment) => ctx.db.delete(garment._id)))
 
     for (const suggestion of suggestions) {
       await ctx.db.insert('garments', {
@@ -90,6 +111,7 @@ export const saveSuggestions = internalMutation({
         silhouette: suggestion.silhouette,
         layerPosition: suggestion.layerPosition,
         confidence: suggestion.confidence,
+        boundingBox: suggestion.boundingBox,
         confirmed: false,
       })
     }
@@ -126,7 +148,7 @@ export const analyzeOutfit = action({
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
           contents: [{ parts: [
-            { text: 'Identify only garments visibly worn by the person. Be conservative. Use "unknown" whenever a visual attribute is unclear. Do not infer mood, occasion, comfort, brand, price, fabric, identity, body type, or ownership.' },
+            { text: 'Identify only garments visibly worn by the person. Be conservative. Use "unknown" whenever a visual attribute is unclear. Do not infer mood, occasion, comfort, brand, price, fabric, identity, body type, or ownership. For each garment, return a tight boundingBox around only that garment using normalized image coordinates from 0 to 1: x from the left edge, y from the top edge, plus width and height. Keep every box fully inside the image.' },
             { inlineData: { mimeType, data: imageData } },
           ] }],
           generationConfig: { responseMimeType: 'application/json', responseSchema },

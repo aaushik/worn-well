@@ -11,7 +11,7 @@ const recommendation = {
     stylingNotes: ['Wear the shirt untucked.'],
   }],
   garments: [
-    { id: 'shirt-1', label: 'White shirt', category: 'top' as const, subtype: 'button-up', primaryColor: 'white', secondaryColors: [], pattern: 'solid', fit: 'relaxed', silhouette: 'straight' },
+    { id: 'shirt-1', label: 'White shirt', category: 'top' as const, subtype: 'button-up', primaryColor: 'white', secondaryColors: [], pattern: 'solid', fit: 'relaxed', silhouette: 'straight', sourceImageUrl: 'https://example.com/outfit.jpg', boundingBox: { x: 0.1, y: 0.1, width: 0.4, height: 0.5 } },
     { id: 'jeans-1', label: 'Dark jeans', category: 'bottom' as const, subtype: 'jeans', primaryColor: 'blue', secondaryColors: [], pattern: 'solid', fit: 'regular', silhouette: 'straight' },
   ],
   provisionalGarmentCount: 0,
@@ -38,6 +38,7 @@ describe('StylistPanel', () => {
     expect(await screen.findByText('Easy dinner look')).toBeInTheDocument()
     expect(screen.getByText('White shirt')).toBeInTheDocument()
     expect(screen.getByText('Dark jeans')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /white shirt crop/i })).toHaveAttribute('src', 'https://example.com/outfit.jpg')
   })
 
   it('removes a previous result while submitting a new request', async () => {

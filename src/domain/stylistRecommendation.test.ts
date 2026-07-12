@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isCompleteLook, parseStylistRecommendation } from '../../convex/lib/stylist'
+import { buildFallbackSelection, isCompleteLook, parseStylistRecommendation } from '../../convex/lib/stylist'
 
 const response = (garmentIds: string[]) => ({
   candidates: [{ content: { parts: [{ text: JSON.stringify({ looks: [{ garmentIds }] }) }] } }],
@@ -28,6 +28,14 @@ describe('parseStylistRecommendation', () => {
     expect(isCompleteLook([{ category: 'footwear' }])).toBe(false)
     expect(isCompleteLook([{ category: 'top' }, { category: 'bottom' }])).toBe(true)
     expect(isCompleteLook([{ category: 'dress' }])).toBe(true)
+  })
+
+  it('builds a complete deterministic fallback from confirmed pieces', () => {
+    expect(buildFallbackSelection([
+      { id: 'shirt', category: 'top' },
+      { id: 'jeans', category: 'bottom' },
+      { id: 'shoes', category: 'footwear' },
+    ])).toEqual({ looks: [{ garmentIds: ['shirt', 'jeans', 'shoes'] }] })
   })
 
   it('rejects empty looks', () => {

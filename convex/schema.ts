@@ -40,6 +40,7 @@ export default defineSchema({
     silhouette: v.optional(v.string()),
     layerPosition: v.optional(v.string()),
     confidence: v.optional(v.number()),
+    boundingBox: v.optional(v.object({ x: v.number(), y: v.number(), width: v.number(), height: v.number() })),
     canonicalGarmentId: v.optional(v.id('garments')),
     confirmed: v.boolean(),
   }).index('by_user', ['userId']).index('by_outfit', ['sourceOutfitId']),

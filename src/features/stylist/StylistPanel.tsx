@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import type { CSSProperties, SyntheticEvent } from 'react'
 import type { StylistRecommendation } from '../../domain/stylistRecommendation'
 
 export type GroundedGarment = {
@@ -11,6 +12,8 @@ export type GroundedGarment = {
   pattern: string
   fit: string
   silhouette: string
+  sourceImageUrl?: string | null
+  boundingBox?: { x: number; y: number; width: number; height: number }
 }
 
 export type StylistResult = StylistRecommendation & {
@@ -28,6 +31,26 @@ type Props = {
   onClose: () => void
   onRecommend: (request: StylistRequest) => Promise<StylistResult>
   provisionalGarmentCount?: number
+}
+
+function GarmentCrop({ garment }: { garment: GroundedGarment }) {
+  const [sourceRatio, setSourceRatio] = useState(1)
+  if (!garment.sourceImageUrl || !garment.boundingBox) return null
+  const box = garment.boundingBox
+  const frameStyle = { aspectRatio: String((box.width * sourceRatio) / box.height) } as CSSProperties
+  const imageStyle = {
+    width: `${100 / box.width}%`,
+    height: `${100 / box.height}%`,
+    left: `${-(box.x / box.width) * 100}%`,
+    top: `${-(box.y / box.height) * 100}%`,
+  } as CSSProperties
+  function loaded(event: SyntheticEvent<HTMLImageElement>) {
+    const image = event.currentTarget
+    setSourceRatio(image.naturalWidth / image.naturalHeight)
+  }
+  return <div className="garment-crop" style={frameStyle}>
+    <img src={garment.sourceImageUrl} alt={`${garment.label} crop`} style={imageStyle} onLoad={loaded} />
+  </div>
 }
 
 export function StylistPanel({ onClose, onRecommend, provisionalGarmentCount = 0 }: Props) {
@@ -83,7 +106,10 @@ export function StylistPanel({ onClose, onRecommend, provisionalGarmentCount = 0
           <h3>{look.title}</h3>
           <ul className="look-garments">{look.garmentIds.map((id) => {
             const garment = garmentById.get(id)
-            return garment ? <li key={id}><strong>{garment.label}</strong><span>{garment.primaryColor} · {garment.subtype}</span></li> : null
+            return garment ? <li key={id}>
+              <GarmentCrop garment={garment} />
+              <strong>{garment.label}</strong><span>{garment.primaryColor} · {garment.subtype}</span>
+            </li> : null
           })}</ul>
           <p>{look.reason}</p>
           {look.stylingNotes.length > 0 && <ul className="styling-notes">{look.stylingNotes.map((note) => <li key={note}>{note}</li>)}</ul>}

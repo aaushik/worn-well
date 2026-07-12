@@ -12,6 +12,7 @@ const candidate = {
   silhouette: 'boxy',
   layerPosition: 'outer',
   confidence: 0.88,
+  boundingBox: { x: 0.1, y: 0.1, width: 0.5, height: 0.5 },
 }
 
 describe('parseGeminiGarments', () => {
